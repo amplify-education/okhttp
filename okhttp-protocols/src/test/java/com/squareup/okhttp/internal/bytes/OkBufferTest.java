@@ -511,22 +511,22 @@ public final class OkBufferTest {
     assertEquals(0, data.byteCount());
   }
 
-  @Test public void peekByte() throws Exception {
+  @Test public void byteAt() throws Exception {
     OkBuffer buffer = new OkBuffer();
     buffer.writeUtf8("a");
     buffer.writeUtf8(repeat('b', Segment.SIZE));
     buffer.writeUtf8("c");
-    assertEquals('a', buffer.peekByte(0));
-    assertEquals('a', buffer.peekByte(0)); // Peek doesn't mutate!
-    assertEquals('c', buffer.peekByte(buffer.byteCount - 1));
-    assertEquals('b', buffer.peekByte(buffer.byteCount - 2));
-    assertEquals('b', buffer.peekByte(buffer.byteCount - 3));
+    assertEquals('a', buffer.byteAt(0));
+    assertEquals('a', buffer.byteAt(0)); // Peek doesn't mutate!
+    assertEquals('c', buffer.byteAt(buffer.byteCount - 1));
+    assertEquals('b', buffer.byteAt(buffer.byteCount - 2));
+    assertEquals('b', buffer.byteAt(buffer.byteCount - 3));
   }
 
-  @Test public void peekByteOfEmptyBuffer() throws Exception {
+  @Test public void byteAtOfEmptyBuffer() throws Exception {
     OkBuffer buffer = new OkBuffer();
     try {
-      buffer.peekByte(0);
+      buffer.byteAt(0);
       fail();
     } catch (IndexOutOfBoundsException expected) {
     }

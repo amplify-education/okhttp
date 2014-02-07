@@ -76,7 +76,7 @@ public final class OkBuffer implements Source, Sink {
   }
 
   /** Returns the byte at {@code i}. */
-  public byte peekByte(long i) {
+  public byte byteAt(long i) {
     checkOffsetAndCount(byteCount, i, 1);
     for (Segment s = head; true; s = s.next) {
       int segmentByteCount = s.limit - s.pos;
@@ -355,7 +355,7 @@ public final class OkBuffer implements Source, Sink {
       // Is a prefix of the source's head segment all that we need to move?
       if (byteCount < (source.head.limit - source.head.pos)) {
         Segment tail = head.prev;
-        if (head == null || byteCount + (tail.limit - tail.pos) > Segment.SIZE) {
+        if (byteCount + (tail.limit - tail.pos) > Segment.SIZE) {
           // We're going to need another segment. Split the source's head
           // segment in two, then move the first of those two to this buffer.
           source.head = source.head.split((int) byteCount);

@@ -21,15 +21,15 @@ import java.util.zip.CRC32;
 import java.util.zip.Inflater;
 
 public final class GzipSource implements Source {
-  private static final int FHCRC = 0x2;
-  private static final int FEXTRA = 0x4;
-  private static final int FNAME = 0x8;
-  private static final int FCOMMENT = 0x10;
+  private static final byte FHCRC = 1;
+  private static final byte FEXTRA = 2;
+  private static final byte FNAME = 3;
+  private static final byte FCOMMENT = 4;
 
-  private static final int SECTION_HEADER = 0;
-  private static final int SECTION_BODY = 1;
-  private static final int SECTION_TRAILER = 2;
-  private static final int SECTION_DONE = 3;
+  private static final byte SECTION_HEADER = 0;
+  private static final byte SECTION_BODY = 1;
+  private static final byte SECTION_TRAILER = 2;
+  private static final byte SECTION_DONE = 3;
 
   /** The current section. Always progresses forward. */
   private int section = SECTION_HEADER;
@@ -109,8 +109,8 @@ public final class GzipSource implements Source {
     // |ID1|ID2|CM |FLG|     MTIME     |XFL|OS | (more-->)
     // +---+---+---+---+---+---+---+---+---+---+
     require(10, deadline);
-    int flags = buffer.peekByte(3);
-    boolean fhcrc = (flags & FHCRC) != 0;
+    byte flags = buffer.byteAt(3);
+    boolean fhcrc = ((flags >> FHCRC) & 1) == 1;
     if (fhcrc) updateCrc(buffer, 0, 10);
 
     short id1id2 = buffer.readShort();
@@ -121,19 +121,20 @@ public final class GzipSource implements Source {
     // +---+---+=================================+
     // | XLEN  |...XLEN bytes of "extra field"...| (more-->)
     // +---+---+=================================+
-    if ((flags & FEXTRA) != 0) {
+    if (((flags >> FEXTRA) & 1) == 1) {
       require(2, deadline);
       if (fhcrc) updateCrc(buffer, 0, 2);
       int xlen = buffer.readShortLe() & 0xffff;
       require(xlen, deadline);
       if (fhcrc) updateCrc(buffer, 0, xlen);
+      buffer.skip(xlen);
     }
 
     // Skip an optional 0-terminated name.
     // +=========================================+
     // |...original file name, zero-terminated...| (more-->)
     // +=========================================+
-    if ((flags & FNAME) != 0) {
+    if (((flags >> FNAME) & 1) == 1) {
       long index = seek((byte) 0, deadline);
       if (fhcrc) updateCrc(buffer, 0, index + 1);
       buffer.skip(index + 1);
@@ -143,7 +144,7 @@ public final class GzipSource implements Source {
     // +===================================+
     // |...file comment, zero-terminated...| (more-->)
     // +===================================+
-    if ((flags & FCOMMENT) != 0) {
+    if (((flags >> FCOMMENT) & 1) == 1) {
       long index = seek((byte) 0, deadline);
       if (fhcrc) updateCrc(buffer, 0, index + 1);
       buffer.skip(index + 1);
@@ -197,7 +198,7 @@ public final class GzipSource implements Source {
   private long seek(byte b, Deadline deadline) throws IOException {
     long start = 0;
     long index;
-    while ((index = buffer.indexOf(b, start)) != -1) {
+    while ((index = buffer.indexOf(b, start)) == -1) {
       start = buffer.byteCount;
       if (source.read(buffer, Segment.SIZE, deadline) == -1) throw new EOFException();
     }
@@ -207,7 +208,7 @@ public final class GzipSource implements Source {
   private void checkEqual(String name, int expected, int actual) throws IOException {
     if (actual != expected) {
       throw new IOException(String.format(
-          "%s: actual %#08x != expected %#08x", name, crc.getValue(), expected));
+          "%s: actual %#08x != expected %#08x", name, actual, expected));
     }
   }
 }

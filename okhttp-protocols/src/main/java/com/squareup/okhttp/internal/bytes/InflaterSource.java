@@ -24,6 +24,7 @@ import java.util.zip.Inflater;
 public final class InflaterSource implements Source {
   private final Source source;
   private final Inflater inflater;
+  /** This holds bytes read from the source, but not yet inflated. */
   private final OkBuffer buffer;
 
   /**
